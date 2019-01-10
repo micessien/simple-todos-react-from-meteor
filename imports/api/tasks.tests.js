@@ -163,6 +163,41 @@ if (Meteor.isServer) {
         // Verify that task is not deleted
         assert.equal(Tasks.find().count(), 1);
       });
+      
+      it('can set task private', () => {
+        // Isolate setPrivate method
+        const setPrivate = Meteor.server.method_handlers['tasks.setPrivate'];
+
+        // Set up fakeUserObject
+        const fakeUserObject = { userId };
+
+        // Run test
+        setPrivate.apply(fakeUserObject, [taskId, true]);
+
+        // Verify that task is not deleted
+        assert.equal(Tasks.find().count(), 1);
+      });
+
+      it('cannot set someone else\'s task private', () => {
+        // Set task to private
+        Tasks.update(taskId, { $set: {private: true}});
+        // Generate Random id to step
+        const anotherUserId = Random.id();
+        
+        // Isolate setPrivate method
+        const setPrivate = Meteor.server.method_handlers['tasks.setPrivate'];
+
+        // Set up a fake method fakeUserObject
+        const fakeUserObject = { 'userId' : anotherUserId };
+
+        // Run test
+        assert.throws(function() {
+          setPrivate.apply(fakeUserObject, [taskId, true]);
+        }, Meteor.Error, 'not-authorized')
+
+        // Verify that task is not deleted
+        assert.equal(Tasks.find().count(), 1);
+      });
 
     });
   });
